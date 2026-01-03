@@ -1,0 +1,30 @@
+{
+  "version": "1.0",
+  "containers": {
+    "plex": {
+      "networks": ["media_net", "proxy_net"],
+      "enabled": true
+    },
+    "sonarr": {
+      "networks": ["media_net", "download_net"],
+      "enabled": true
+    },
+    "radarr": {
+      "networks": ["media_net", "download_net"],
+      "enabled": true
+    },
+    "nginx-proxy": {
+      "networks": ["proxy_net", "frontend_net"],
+      "enabled": true
+    },
+    "homeassistant": {
+      "networks": ["iot_net", "proxy_net"],
+      "enabled": true
+    }
+  },
+  "settings": {
+    "log_level": "info",
+    "retry_attempts": 3,
+    "retry_delay_seconds": 2
+  }
+}

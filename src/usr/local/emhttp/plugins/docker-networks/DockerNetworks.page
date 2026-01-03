@@ -1,0 +1,737 @@
+Menu="Docker"
+Title="Multi-Network Manager"
+Icon="docker"
+---
+<?php
+/*
+ * Docker Multi-Network Manager
+ * Web UI for managing additional network connections for Docker containers
+ */
+
+$plugin = "docker-networks";
+$configFile = "/boot/config/plugins/{$plugin}/networks.json";
+$scriptPath = "/usr/local/emhttp/plugins/{$plugin}/scripts/docker-networks.sh";
+$logFile = "/var/log/{$plugin}/{$plugin}.log";
+
+// Include helper functions
+require_once("/usr/local/emhttp/plugins/{$plugin}/include/helpers.php");
+
+// Get CSRF token
+$csrf_token = $_SESSION['csrf_token'] ?? '';
+
+// Load current configuration
+$config = loadConfig($configFile);
+
+// Get Docker containers and networks
+$containers = getDockerContainers();
+$networks = getDockerNetworks();
+
+// Check daemon status
+$daemonStatus = getDaemonStatus();
+?>
+
+<link type="text/css" rel="stylesheet" href="<?autov("/webGui/styles/default-fonts.css")?>">
+<style>
+.docker-networks-container {
+    max-width: 1200px;
+}
+.section-header {
+    background: #1c1b1b;
+    color: #fff;
+    padding: 10px 15px;
+    margin: 20px 0 10px 0;
+    border-radius: 4px;
+    font-weight: bold;
+}
+.status-panel {
+    background: #2d2d2d;
+    padding: 15px;
+    border-radius: 4px;
+    margin-bottom: 20px;
+}
+.status-item {
+    display: inline-block;
+    margin-right: 30px;
+    padding: 5px 0;
+}
+.status-running { color: #4CAF50; }
+.status-stopped { color: #f44336; }
+.status-warning { color: #ff9800; }
+.container-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+}
+.container-table th,
+.container-table td {
+    padding: 10px;
+    text-align: left;
+    border-bottom: 1px solid #444;
+}
+.container-table th {
+    background: #1c1b1b;
+    color: #fff;
+}
+.container-table tr:hover {
+    background: #2d2d2d;
+}
+.network-tag {
+    display: inline-block;
+    background: #4a4a4a;
+    padding: 2px 8px;
+    border-radius: 3px;
+    margin: 2px;
+    font-size: 0.9em;
+}
+.network-tag.configured {
+    background: #2e7d32;
+}
+.network-tag.current {
+    background: #1565c0;
+}
+.btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    margin-right: 5px;
+}
+.btn-primary { background: #ff8c2f; color: #fff; }
+.btn-primary:hover { background: #e67e22; }
+.btn-success { background: #4CAF50; color: #fff; }
+.btn-success:hover { background: #45a049; }
+.btn-danger { background: #f44336; color: #fff; }
+.btn-danger:hover { background: #da190b; }
+.btn-secondary { background: #666; color: #fff; }
+.btn-secondary:hover { background: #555; }
+.btn-sm {
+    padding: 4px 10px;
+    font-size: 12px;
+}
+.toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 50px;
+    height: 24px;
+}
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+.toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #666;
+    transition: .3s;
+    border-radius: 24px;
+}
+.toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: .3s;
+    border-radius: 50%;
+}
+input:checked + .toggle-slider {
+    background-color: #4CAF50;
+}
+input:checked + .toggle-slider:before {
+    transform: translateX(26px);
+}
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.7);
+}
+.modal-content {
+    background-color: #1c1b1b;
+    margin: 10% auto;
+    padding: 20px;
+    border-radius: 8px;
+    width: 500px;
+    max-width: 90%;
+}
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #444;
+}
+.modal-close {
+    font-size: 24px;
+    cursor: pointer;
+    color: #999;
+}
+.modal-close:hover {
+    color: #fff;
+}
+.form-group {
+    margin-bottom: 15px;
+}
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+.form-group select,
+.form-group input,
+.form-group textarea {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #444;
+    border-radius: 4px;
+    background: #2d2d2d;
+    color: #fff;
+}
+.form-group select[multiple] {
+    height: 120px;
+}
+.log-viewer {
+    background: #1a1a1a;
+    padding: 10px;
+    border-radius: 4px;
+    max-height: 300px;
+    overflow-y: auto;
+    font-family: monospace;
+    font-size: 12px;
+    white-space: pre-wrap;
+    word-break: break-all;
+}
+.settings-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin-bottom: 20px;
+}
+.container-running { color: #4CAF50; }
+.container-stopped { color: #999; }
+.icon-running:before { content: "●"; margin-right: 5px; }
+.icon-stopped:before { content: "○"; margin-right: 5px; }
+.help-text {
+    font-size: 0.85em;
+    color: #999;
+    margin-top: 3px;
+}
+.action-buttons {
+    margin: 20px 0;
+}
+.import-export {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+</style>
+
+<div class="docker-networks-container">
+    <div class="title">
+        <span class="left">Docker Multi-Network Manager</span>
+    </div>
+
+    <!-- Service Status Panel -->
+    <div class="section-header">Service Status</div>
+    <div class="status-panel">
+        <div class="status-item">
+            <strong>Daemon:</strong>
+            <span id="daemon-status" class="<?= $daemonStatus['running'] ? 'status-running' : 'status-stopped' ?>">
+                <?= $daemonStatus['running'] ? 'Running (PID: ' . $daemonStatus['pid'] . ')' : 'Stopped' ?>
+            </span>
+        </div>
+        <div class="status-item">
+            <strong>Docker:</strong>
+            <span class="<?= $daemonStatus['docker'] ? 'status-running' : 'status-stopped' ?>">
+                <?= $daemonStatus['docker'] ? 'Available' : 'Not Available' ?>
+            </span>
+        </div>
+        <div class="status-item">
+            <strong>Configured Containers:</strong>
+            <span><?= count($config['containers'] ?? []) ?></span>
+        </div>
+        <div style="margin-top: 10px;">
+            <button class="btn btn-success btn-sm" onclick="daemonAction('start')" <?= $daemonStatus['running'] ? 'disabled' : '' ?>>Start</button>
+            <button class="btn btn-danger btn-sm" onclick="daemonAction('stop')" <?= !$daemonStatus['running'] ? 'disabled' : '' ?>>Stop</button>
+            <button class="btn btn-secondary btn-sm" onclick="daemonAction('restart')">Restart</button>
+            <button class="btn btn-primary btn-sm" onclick="applyNow()">Apply Now</button>
+        </div>
+    </div>
+
+    <!-- Container Network Assignments -->
+    <div class="section-header">Container Network Assignments</div>
+    <div class="action-buttons">
+        <button class="btn btn-primary" onclick="openAddModal()">Add Container</button>
+        <button class="btn btn-secondary" onclick="refreshContainers()">Refresh</button>
+    </div>
+
+    <table class="container-table" id="container-table">
+        <thead>
+            <tr>
+                <th>Container</th>
+                <th>Status</th>
+                <th>Current Networks</th>
+                <th>Additional Networks</th>
+                <th>Enabled</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="container-tbody">
+            <?php
+            // Show configured containers first
+            $configuredContainers = $config['containers'] ?? [];
+
+            foreach ($configuredContainers as $containerName => $containerConfig):
+                $isRunning = isset($containers[$containerName]) && $containers[$containerName]['running'];
+                $currentNetworks = $containers[$containerName]['networks'] ?? [];
+                $additionalNetworks = $containerConfig['networks'] ?? [];
+                $enabled = $containerConfig['enabled'] ?? false;
+            ?>
+            <tr data-container="<?= htmlspecialchars($containerName) ?>">
+                <td>
+                    <span class="<?= $isRunning ? 'container-running icon-running' : 'container-stopped icon-stopped' ?>">
+                        <?= htmlspecialchars($containerName) ?>
+                    </span>
+                </td>
+                <td><?= $isRunning ? 'Running' : (isset($containers[$containerName]) ? 'Stopped' : 'Not Found') ?></td>
+                <td>
+                    <?php foreach ($currentNetworks as $net): ?>
+                        <span class="network-tag current"><?= htmlspecialchars($net) ?></span>
+                    <?php endforeach; ?>
+                </td>
+                <td>
+                    <?php foreach ($additionalNetworks as $net): ?>
+                        <span class="network-tag configured"><?= htmlspecialchars($net) ?></span>
+                    <?php endforeach; ?>
+                </td>
+                <td>
+                    <label class="toggle-switch">
+                        <input type="checkbox" <?= $enabled ? 'checked' : '' ?> onchange="toggleEnabled('<?= htmlspecialchars($containerName) ?>', this.checked)">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </td>
+                <td>
+                    <button class="btn btn-primary btn-sm" onclick="editContainer('<?= htmlspecialchars($containerName) ?>')">Edit</button>
+                    <button class="btn btn-success btn-sm" onclick="applyContainer('<?= htmlspecialchars($containerName) ?>')" <?= !$isRunning ? 'disabled' : '' ?>>Apply</button>
+                    <button class="btn btn-danger btn-sm" onclick="removeContainer('<?= htmlspecialchars($containerName) ?>')">Remove</button>
+                </td>
+            </tr>
+            <?php endforeach; ?>
+
+            <?php if (empty($configuredContainers)): ?>
+            <tr id="no-config-row">
+                <td colspan="6" style="text-align: center; padding: 20px; color: #999;">
+                    No containers configured. Click "Add Container" to get started.
+                </td>
+            </tr>
+            <?php endif; ?>
+        </tbody>
+    </table>
+
+    <!-- Import/Export Section -->
+    <div class="section-header">Import / Export Configuration</div>
+    <div class="import-export">
+        <button class="btn btn-secondary" onclick="exportConfig()">Export JSON</button>
+        <button class="btn btn-secondary" onclick="document.getElementById('import-file').click()">Import JSON</button>
+        <input type="file" id="import-file" accept=".json" style="display: none;" onchange="importConfig(this.files[0])">
+        <button class="btn btn-secondary" onclick="openJsonEditor()">Edit Raw JSON</button>
+    </div>
+
+    <!-- Settings Section -->
+    <div class="section-header">Settings</div>
+    <form id="settings-form">
+        <div class="settings-grid">
+            <div class="form-group">
+                <label for="log_level">Log Level</label>
+                <select id="log_level" name="log_level">
+                    <option value="debug" <?= ($config['settings']['log_level'] ?? 'info') == 'debug' ? 'selected' : '' ?>>Debug</option>
+                    <option value="info" <?= ($config['settings']['log_level'] ?? 'info') == 'info' ? 'selected' : '' ?>>Info</option>
+                    <option value="warn" <?= ($config['settings']['log_level'] ?? 'info') == 'warn' ? 'selected' : '' ?>>Warning</option>
+                    <option value="error" <?= ($config['settings']['log_level'] ?? 'info') == 'error' ? 'selected' : '' ?>>Error</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="retry_attempts">Retry Attempts</label>
+                <input type="number" id="retry_attempts" name="retry_attempts" min="1" max="10" value="<?= intval($config['settings']['retry_attempts'] ?? 3) ?>">
+                <div class="help-text">Number of times to retry connecting on failure</div>
+            </div>
+            <div class="form-group">
+                <label for="retry_delay">Retry Delay (seconds)</label>
+                <input type="number" id="retry_delay" name="retry_delay_seconds" min="1" max="30" value="<?= intval($config['settings']['retry_delay_seconds'] ?? 2) ?>">
+                <div class="help-text">Time to wait between retry attempts</div>
+            </div>
+        </div>
+        <button type="button" class="btn btn-primary" onclick="saveSettings()">Save Settings</button>
+    </form>
+
+    <!-- Logs Section -->
+    <div class="section-header">Recent Logs</div>
+    <div style="margin-bottom: 10px;">
+        <button class="btn btn-secondary btn-sm" onclick="refreshLogs()">Refresh Logs</button>
+        <button class="btn btn-secondary btn-sm" onclick="clearLogs()">Clear Logs</button>
+    </div>
+    <div class="log-viewer" id="log-viewer">
+        <?= htmlspecialchars(getRecentLogs($logFile, 50)) ?>
+    </div>
+</div>
+
+<!-- Add/Edit Container Modal -->
+<div id="container-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="modal-title">Add Container</h3>
+            <span class="modal-close" onclick="closeModal()">&times;</span>
+        </div>
+        <form id="container-form">
+            <input type="hidden" id="edit-mode" value="add">
+            <input type="hidden" id="original-container" value="">
+
+            <div class="form-group">
+                <label for="container-select">Container</label>
+                <select id="container-select" name="container">
+                    <option value="">-- Select Container --</option>
+                    <?php foreach ($containers as $name => $info): ?>
+                        <option value="<?= htmlspecialchars($name) ?>"><?= htmlspecialchars($name) ?> (<?= $info['running'] ? 'Running' : 'Stopped' ?>)</option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="networks-select">Additional Networks</label>
+                <select id="networks-select" name="networks[]" multiple>
+                    <?php foreach ($networks as $network): ?>
+                        <option value="<?= htmlspecialchars($network) ?>"><?= htmlspecialchars($network) ?></option>
+                    <?php endforeach; ?>
+                </select>
+                <div class="help-text">Hold Ctrl/Cmd to select multiple networks</div>
+            </div>
+
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="container-enabled" name="enabled" checked>
+                    Enable automatic network connection
+                </label>
+            </div>
+
+            <div style="text-align: right; margin-top: 20px;">
+                <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveContainer()">Save</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- JSON Editor Modal -->
+<div id="json-modal" class="modal">
+    <div class="modal-content" style="width: 700px;">
+        <div class="modal-header">
+            <h3>Edit Configuration JSON</h3>
+            <span class="modal-close" onclick="closeJsonModal()">&times;</span>
+        </div>
+        <div class="form-group">
+            <textarea id="json-editor" style="height: 400px; font-family: monospace;"></textarea>
+        </div>
+        <div style="text-align: right;">
+            <button type="button" class="btn btn-secondary" onclick="closeJsonModal()">Cancel</button>
+            <button type="button" class="btn btn-primary" onclick="saveJsonConfig()">Save</button>
+        </div>
+    </div>
+</div>
+
+<script>
+const csrf_token = '<?= $csrf_token ?>';
+const pluginUrl = '/plugins/docker-networks/include/exec.php';
+
+// Helper function for AJAX calls
+async function apiCall(action, data = {}) {
+    const formData = new FormData();
+    formData.append('action', action);
+    formData.append('csrf_token', csrf_token);
+    for (const [key, value] of Object.entries(data)) {
+        if (Array.isArray(value)) {
+            formData.append(key, JSON.stringify(value));
+        } else {
+            formData.append(key, value);
+        }
+    }
+
+    const response = await fetch(pluginUrl, {
+        method: 'POST',
+        body: formData
+    });
+
+    return response.json();
+}
+
+// Daemon control
+async function daemonAction(action) {
+    const result = await apiCall('daemon', { command: action });
+    if (result.success) {
+        showNotification(result.message, 'success');
+        setTimeout(() => location.reload(), 1000);
+    } else {
+        showNotification(result.message || 'Action failed', 'error');
+    }
+}
+
+// Apply configuration
+async function applyNow() {
+    showNotification('Applying configuration...', 'info');
+    const result = await apiCall('apply');
+    if (result.success) {
+        showNotification('Configuration applied successfully', 'success');
+        refreshLogs();
+    } else {
+        showNotification(result.message || 'Apply failed', 'error');
+    }
+}
+
+async function applyContainer(container) {
+    showNotification(`Applying configuration to ${container}...`, 'info');
+    const result = await apiCall('apply', { container: container });
+    if (result.success) {
+        showNotification(`Configuration applied to ${container}`, 'success');
+        refreshLogs();
+    } else {
+        showNotification(result.message || 'Apply failed', 'error');
+    }
+}
+
+// Container management
+function openAddModal() {
+    document.getElementById('modal-title').textContent = 'Add Container';
+    document.getElementById('edit-mode').value = 'add';
+    document.getElementById('original-container').value = '';
+    document.getElementById('container-select').disabled = false;
+    document.getElementById('container-select').value = '';
+    document.getElementById('networks-select').selectedIndex = -1;
+    document.getElementById('container-enabled').checked = true;
+    document.getElementById('container-modal').style.display = 'block';
+}
+
+async function editContainer(containerName) {
+    const result = await apiCall('getContainer', { container: containerName });
+    if (result.success && result.data) {
+        document.getElementById('modal-title').textContent = 'Edit Container';
+        document.getElementById('edit-mode').value = 'edit';
+        document.getElementById('original-container').value = containerName;
+        document.getElementById('container-select').value = containerName;
+        document.getElementById('container-select').disabled = true;
+        document.getElementById('container-enabled').checked = result.data.enabled;
+
+        // Select the configured networks
+        const networksSelect = document.getElementById('networks-select');
+        for (let i = 0; i < networksSelect.options.length; i++) {
+            networksSelect.options[i].selected = result.data.networks.includes(networksSelect.options[i].value);
+        }
+
+        document.getElementById('container-modal').style.display = 'block';
+    } else {
+        showNotification('Failed to load container configuration', 'error');
+    }
+}
+
+async function saveContainer() {
+    const container = document.getElementById('container-select').value;
+    const networksSelect = document.getElementById('networks-select');
+    const networks = Array.from(networksSelect.selectedOptions).map(opt => opt.value);
+    const enabled = document.getElementById('container-enabled').checked;
+
+    if (!container) {
+        showNotification('Please select a container', 'error');
+        return;
+    }
+
+    if (networks.length === 0) {
+        showNotification('Please select at least one network', 'error');
+        return;
+    }
+
+    const result = await apiCall('saveContainer', {
+        container: container,
+        networks: networks,
+        enabled: enabled
+    });
+
+    if (result.success) {
+        showNotification('Container saved successfully', 'success');
+        closeModal();
+        setTimeout(() => location.reload(), 500);
+    } else {
+        showNotification(result.message || 'Failed to save container', 'error');
+    }
+}
+
+async function removeContainer(containerName) {
+    if (!confirm(`Remove network configuration for "${containerName}"?`)) {
+        return;
+    }
+
+    const result = await apiCall('removeContainer', { container: containerName });
+    if (result.success) {
+        showNotification('Container removed', 'success');
+        setTimeout(() => location.reload(), 500);
+    } else {
+        showNotification(result.message || 'Failed to remove container', 'error');
+    }
+}
+
+async function toggleEnabled(containerName, enabled) {
+    const result = await apiCall('toggleEnabled', {
+        container: containerName,
+        enabled: enabled
+    });
+
+    if (result.success) {
+        showNotification(`${containerName} ${enabled ? 'enabled' : 'disabled'}`, 'success');
+    } else {
+        showNotification(result.message || 'Failed to update', 'error');
+        // Revert checkbox
+        const checkbox = document.querySelector(`tr[data-container="${containerName}"] input[type="checkbox"]`);
+        if (checkbox) checkbox.checked = !enabled;
+    }
+}
+
+function closeModal() {
+    document.getElementById('container-modal').style.display = 'none';
+}
+
+// Settings
+async function saveSettings() {
+    const settings = {
+        log_level: document.getElementById('log_level').value,
+        retry_attempts: parseInt(document.getElementById('retry_attempts').value),
+        retry_delay_seconds: parseInt(document.getElementById('retry_delay').value)
+    };
+
+    const result = await apiCall('saveSettings', settings);
+    if (result.success) {
+        showNotification('Settings saved', 'success');
+    } else {
+        showNotification(result.message || 'Failed to save settings', 'error');
+    }
+}
+
+// Import/Export
+function exportConfig() {
+    window.location.href = pluginUrl + '?action=export&csrf_token=' + csrf_token;
+}
+
+async function importConfig(file) {
+    if (!file) return;
+
+    const text = await file.text();
+    try {
+        JSON.parse(text); // Validate JSON
+
+        const result = await apiCall('import', { config: text });
+        if (result.success) {
+            showNotification('Configuration imported successfully', 'success');
+            setTimeout(() => location.reload(), 500);
+        } else {
+            showNotification(result.message || 'Import failed', 'error');
+        }
+    } catch (e) {
+        showNotification('Invalid JSON file', 'error');
+    }
+
+    // Reset file input
+    document.getElementById('import-file').value = '';
+}
+
+// JSON Editor
+async function openJsonEditor() {
+    const result = await apiCall('getConfig');
+    if (result.success) {
+        document.getElementById('json-editor').value = JSON.stringify(result.data, null, 2);
+        document.getElementById('json-modal').style.display = 'block';
+    } else {
+        showNotification('Failed to load configuration', 'error');
+    }
+}
+
+async function saveJsonConfig() {
+    const json = document.getElementById('json-editor').value;
+    try {
+        JSON.parse(json); // Validate
+
+        const result = await apiCall('import', { config: json });
+        if (result.success) {
+            showNotification('Configuration saved', 'success');
+            closeJsonModal();
+            setTimeout(() => location.reload(), 500);
+        } else {
+            showNotification(result.message || 'Save failed', 'error');
+        }
+    } catch (e) {
+        showNotification('Invalid JSON: ' + e.message, 'error');
+    }
+}
+
+function closeJsonModal() {
+    document.getElementById('json-modal').style.display = 'none';
+}
+
+// Logs
+async function refreshLogs() {
+    const result = await apiCall('getLogs', { lines: 50 });
+    if (result.success) {
+        document.getElementById('log-viewer').textContent = result.data;
+    }
+}
+
+async function clearLogs() {
+    if (!confirm('Clear all log entries?')) return;
+
+    const result = await apiCall('clearLogs');
+    if (result.success) {
+        document.getElementById('log-viewer').textContent = '';
+        showNotification('Logs cleared', 'success');
+    } else {
+        showNotification('Failed to clear logs', 'error');
+    }
+}
+
+// Refresh containers list
+function refreshContainers() {
+    location.reload();
+}
+
+// Notification system
+function showNotification(message, type = 'info') {
+    // Use Unraid's built-in notification if available
+    if (typeof addBannerWarning === 'function' && type === 'error') {
+        addBannerWarning(message);
+    } else if (typeof addNoticeRow === 'function') {
+        addNoticeRow(message, type === 'error' ? 'alert' : 'normal');
+    } else {
+        // Fallback to alert
+        alert(message);
+    }
+}
+
+// Close modals on outside click
+window.onclick = function(event) {
+    if (event.target.classList.contains('modal')) {
+        event.target.style.display = 'none';
+    }
+}
+
+// Auto-refresh logs every 30 seconds if daemon is running
+<?php if ($daemonStatus['running']): ?>
+setInterval(refreshLogs, 30000);
+<?php endif; ?>
+</script>

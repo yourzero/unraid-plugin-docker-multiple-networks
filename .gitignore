@@ -1,0 +1,18 @@
+# Build artifacts
+/build/
+/archive/*.txz
+/archive/*.plg
+
+# IDE files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
