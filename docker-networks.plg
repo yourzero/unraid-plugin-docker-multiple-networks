@@ -4,7 +4,7 @@
   <!ENTITY author    "Docker Networks Plugin">
   <!ENTITY version   "2024.01.15">
   <!ENTITY launch    "Docker/DockerNetworks">
-  <!ENTITY gitURL    "https://raw.githubusercontent.com/GITHUB_USER/unraid-docker-networks/main">
+  <!ENTITY gitURL    "https://raw.githubusercontent.com/yourzero/unraid-docker-networks/main">
   <!ENTITY pluginURL "&gitURL;/docker-networks.plg">
   <!ENTITY md5       "">
   <!ENTITY plugin    "/boot/config/plugins/&name;">
