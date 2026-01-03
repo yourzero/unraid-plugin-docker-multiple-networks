@@ -11,7 +11,7 @@
   <!ENTITY emhttp    "/usr/local/emhttp/plugins/&name;">
 ]>
 
-<PLUGIN name="&name;" author="&author;" version="&version;" launch="&launch;" pluginURL="&pluginURL;" min="6.12.0" support="https://forums.unraid.net/topic/XXXXX-docker-multi-network-manager/">
+<PLUGIN name="&name;" author="&author;" version="&version;" launch="&launch;" pluginURL="&pluginURL;" min="6.12.0">
 
 <CHANGES>
 ###2024.01.15
@@ -21,21 +21,6 @@
 - Import/Export configuration support
 - Logging and retry logic
 </CHANGES>
-
-<!--
-Docker Multi-Network Manager for Unraid
-
-This plugin automatically connects Docker containers to multiple networks
-when they start. It solves the limitation where Unraid's native Docker UI
-only allows assigning a single network per container.
-
-Features:
-- Persistent configuration (survives reboots)
-- Automatic network connection on container start
-- Web UI for easy management
-- JSON configuration for backup/migration
-- Event-driven (no polling)
--->
 
 <!-- Download plugin archive -->
 <FILE Name="&plugin;/&name;-&version;.txz">
@@ -71,42 +56,24 @@ chmod +x "${PLUGIN_DIR}/scripts/"*.sh 2>/dev/null
 
 # Create default configuration if it doesn't exist
 if [ ! -f "${CONFIG_DIR}/networks.json" ]; then
-    cat > "${CONFIG_DIR}/networks.json" &lt;&lt;EOF
-{
-  "version": "1.0",
-  "containers": {},
-  "settings": {
-    "log_level": "info",
-    "retry_attempts": 3,
-    "retry_delay_seconds": 2
-  }
-}
-EOF
+    echo '{"version":"1.0","containers":{},"settings":{"log_level":"info","retry_attempts":3,"retry_delay_seconds":2}}' > "${CONFIG_DIR}/networks.json"
     chmod 600 "${CONFIG_DIR}/networks.json"
     echo "Default configuration created"
 fi
 
 # Create startup script hook for array start
-STARTUP_SCRIPT="/usr/local/emhttp/plugins/${PLUGIN_NAME}/event/starting_svcs"
-mkdir -p "$(dirname "${STARTUP_SCRIPT}")"
-cat > "${STARTUP_SCRIPT}" &lt;&lt;EOF
-#!/bin/bash
-# Start Docker Networks daemon when array starts
-/usr/local/emhttp/plugins/docker-networks/scripts/start.sh &amp;
-EOF
-chmod +x "${STARTUP_SCRIPT}"
+mkdir -p "${PLUGIN_DIR}/event"
+echo '#!/bin/bash' > "${PLUGIN_DIR}/event/starting_svcs"
+echo '/usr/local/emhttp/plugins/docker-networks/scripts/start.sh' >> "${PLUGIN_DIR}/event/starting_svcs"
+chmod +x "${PLUGIN_DIR}/event/starting_svcs"
 
 # Create shutdown script hook for array stop
-SHUTDOWN_SCRIPT="/usr/local/emhttp/plugins/${PLUGIN_NAME}/event/stopping_svcs"
-cat > "${SHUTDOWN_SCRIPT}" &lt;&lt;EOF
-#!/bin/bash
-# Stop Docker Networks daemon when array stops
-/usr/local/emhttp/plugins/docker-networks/scripts/stop.sh
-EOF
-chmod +x "${SHUTDOWN_SCRIPT}"
+echo '#!/bin/bash' > "${PLUGIN_DIR}/event/stopping_svcs"
+echo '/usr/local/emhttp/plugins/docker-networks/scripts/stop.sh' >> "${PLUGIN_DIR}/event/stopping_svcs"
+chmod +x "${PLUGIN_DIR}/event/stopping_svcs"
 
 # Start daemon if Docker is already running
-if docker info &amp;>/dev/null; then
+if docker info >/dev/null 2>/dev/null; then
     echo "Docker is running, starting daemon..."
     "${PLUGIN_DIR}/scripts/docker-networks.sh" start
 fi
@@ -115,8 +82,7 @@ echo ""
 echo "-----------------------------------------------------------"
 echo " Docker Multi-Network Manager installed successfully!"
 echo ""
-echo " Access the plugin at: Settings -> Docker -> Multi-Network Manager"
-echo " Or navigate to: /Docker/DockerNetworks"
+echo " Access the plugin at: Settings - Docker - Multi-Network Manager"
 echo "-----------------------------------------------------------"
 echo ""
 
