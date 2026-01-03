@@ -4,9 +4,9 @@
   <!ENTITY author    "Docker Networks Plugin">
   <!ENTITY version   "2024.01.15">
   <!ENTITY launch    "Docker/DockerNetworks">
-  <!ENTITY gitURL "https://github.com/yourzero/unraid-plugin-docker-multiple-networks/raw/main">
+  <!ENTITY gitURL    "https://raw.githubusercontent.com/yourzero/unraid-plugin-docker-multiple-networks/main">
   <!ENTITY pluginURL "&gitURL;/docker-networks.plg">
-  <!ENTITY md5       "">
+  <!ENTITY md5       "2acc55ea0c0afb880ce8766bcb4b8b89">
   <!ENTITY plugin    "/boot/config/plugins/&name;">
   <!ENTITY emhttp    "/usr/local/emhttp/plugins/&name;">
 ]>
