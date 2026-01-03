@@ -39,7 +39,7 @@ mkdir -p $LOG_DIR
 
 echo Looking for archive: $ARCHIVE
 if [ -f $ARCHIVE ]; then
-    tar -xf $ARCHIVE -C /usr/local/emhttp/plugins/
+    tar -xf $ARCHIVE -C /
     echo Plugin files extracted
 else
     echo Warning: Plugin archive not found at $ARCHIVE
