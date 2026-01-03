@@ -6,7 +6,7 @@
   <!ENTITY launch    "Docker/DockerNetworks">
   <!ENTITY gitURL    "https://raw.githubusercontent.com/yourzero/unraid-plugin-docker-multiple-networks/main">
   <!ENTITY pluginURL "&gitURL;/docker-networks.plg">
-  <!ENTITY md5       "8001ca5ea63c1a447ea6c443062d05f2">
+  <!ENTITY md5       "061c270fcb85b933f13086655f41b818">
   <!ENTITY plugin    "/boot/config/plugins/&name;">
   <!ENTITY emhttp    "/usr/local/emhttp/plugins/&name;">
 ]>
@@ -16,10 +16,6 @@
 <CHANGES>
 ###2024.01.15
 - Initial release
-- Automatic network connection on container start
-- Web UI for managing network assignments
-- Import/Export configuration support
-- Logging and retry logic
 </CHANGES>
 
 <!-- Download plugin archive -->
@@ -31,59 +27,48 @@
 <INLINE>
 <![CDATA[
 #!/bin/bash
-PLUGIN_NAME="docker-networks"
-PLUGIN_DIR="/usr/local/emhttp/plugins/${PLUGIN_NAME}"
-CONFIG_DIR="/boot/config/plugins/${PLUGIN_NAME}"
-LOG_DIR="/var/log/${PLUGIN_NAME}"
+PLUGIN_DIR=/usr/local/emhttp/plugins/&name;
+CONFIG_DIR=/boot/config/plugins/&name;
+LOG_DIR=/var/log/&name;
+ARCHIVE=$CONFIG_DIR/&name;-&version;.txz
 
-echo "Installing Docker Multi-Network Manager..."
+echo Installing Docker Multi-Network Manager...
 
-# Create directories
-mkdir -p "${PLUGIN_DIR}"
-mkdir -p "${LOG_DIR}"
+mkdir -p $PLUGIN_DIR
+mkdir -p $LOG_DIR
 
-# Extract plugin files
-if [ -f "${CONFIG_DIR}/${PLUGIN_NAME}-&version;.txz" ]; then
-    tar -xf "${CONFIG_DIR}/${PLUGIN_NAME}-&version;.txz" -C /usr/local/emhttp/plugins/
-    echo "Plugin files extracted"
+echo Looking for archive: $ARCHIVE
+if [ -f $ARCHIVE ]; then
+    tar -xf $ARCHIVE -C /usr/local/emhttp/plugins/
+    echo Plugin files extracted
 else
-    echo "Warning: Plugin archive not found, skipping extraction"
+    echo Warning: Plugin archive not found at $ARCHIVE
 fi
 
-# Set executable permissions on scripts
-chmod +x "${PLUGIN_DIR}/scripts/"*.sh 2>/dev/null
+chmod +x $PLUGIN_DIR/scripts/*.sh 2>/dev/null
 
-# Create default configuration if it doesn't exist
-if [ ! -f "${CONFIG_DIR}/networks.json" ]; then
-    echo '{"version":"1.0","containers":{},"settings":{"log_level":"info","retry_attempts":3,"retry_delay_seconds":2}}' > "${CONFIG_DIR}/networks.json"
-    chmod 600 "${CONFIG_DIR}/networks.json"
-    echo "Default configuration created"
+if [ ! -f $CONFIG_DIR/networks.json ]; then
+    echo {} > $CONFIG_DIR/networks.json
+    chmod 600 $CONFIG_DIR/networks.json
 fi
 
-# Create startup script hook for array start
-mkdir -p "${PLUGIN_DIR}/event"
-echo '#!/bin/bash' > "${PLUGIN_DIR}/event/starting_svcs"
-echo '/usr/local/emhttp/plugins/docker-networks/scripts/start.sh' >> "${PLUGIN_DIR}/event/starting_svcs"
-chmod +x "${PLUGIN_DIR}/event/starting_svcs"
+mkdir -p $PLUGIN_DIR/event
+echo "#!/bin/bash" > $PLUGIN_DIR/event/starting_svcs
+echo "$PLUGIN_DIR/scripts/start.sh" >> $PLUGIN_DIR/event/starting_svcs
+chmod +x $PLUGIN_DIR/event/starting_svcs
 
-# Create shutdown script hook for array stop
-echo '#!/bin/bash' > "${PLUGIN_DIR}/event/stopping_svcs"
-echo '/usr/local/emhttp/plugins/docker-networks/scripts/stop.sh' >> "${PLUGIN_DIR}/event/stopping_svcs"
-chmod +x "${PLUGIN_DIR}/event/stopping_svcs"
+echo "#!/bin/bash" > $PLUGIN_DIR/event/stopping_svcs
+echo "$PLUGIN_DIR/scripts/stop.sh" >> $PLUGIN_DIR/event/stopping_svcs
+chmod +x $PLUGIN_DIR/event/stopping_svcs
 
-# Start daemon if Docker is already running
-if docker info >/dev/null 2>/dev/null; then
-    echo "Docker is running, starting daemon..."
-    "${PLUGIN_DIR}/scripts/docker-networks.sh" start
+if [ -f $PLUGIN_DIR/scripts/docker-networks.sh ]; then
+    if docker info >/dev/null 2>/dev/null; then
+        echo Starting daemon...
+        $PLUGIN_DIR/scripts/docker-networks.sh start
+    fi
 fi
 
-echo ""
-echo "-----------------------------------------------------------"
-echo " Docker Multi-Network Manager installed successfully!"
-echo ""
-echo " Access the plugin at: Settings - Docker - Multi-Network Manager"
-echo "-----------------------------------------------------------"
-]]>
+echo Done
 </INLINE>
 </FILE>
 
@@ -91,28 +76,17 @@ echo "-----------------------------------------------------------"
 <INLINE>
 <![CDATA[
 #!/bin/bash
-PLUGIN_NAME="docker-networks"
-PLUGIN_DIR="/usr/local/emhttp/plugins/${PLUGIN_NAME}"
-LOG_DIR="/var/log/${PLUGIN_NAME}"
-CONFIG_DIR="/boot/config/plugins/${PLUGIN_NAME}"
+PLUGIN_DIR=/usr/local/emhttp/plugins/&name;
+LOG_DIR=/var/log/&name;
+CONFIG_DIR=/boot/config/plugins/&name;
 
-echo "Removing Docker Multi-Network Manager..."
+$PLUGIN_DIR/scripts/&name;.sh stop 2>/dev/null
+rm -rf $PLUGIN_DIR
+rm -rf $LOG_DIR
+rm -f $CONFIG_DIR/&name;-*.txz
+rm -f /var/run/&name;.pid
 
-# Stop daemon if running
-if [ -f "${PLUGIN_DIR}/scripts/docker-networks.sh" ]; then
-    "${PLUGIN_DIR}/scripts/docker-networks.sh" stop 2>/dev/null
-fi
-
-# Remove plugin files
-rm -rf "${PLUGIN_DIR}"
-rm -rf "${LOG_DIR}"
-rm -f "${CONFIG_DIR}/${PLUGIN_NAME}"-*.txz
-rm -f /var/run/${PLUGIN_NAME}.pid
-
-echo "-----------------------------------------------------------"
-echo " Docker Multi-Network Manager removed."
-echo "-----------------------------------------------------------"
-]]>
+echo Docker Multi-Network Manager removed
 </INLINE>
 </FILE>
 
