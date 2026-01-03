@@ -6,7 +6,7 @@
   <!ENTITY launch    "Docker/DockerNetworks">
   <!ENTITY gitURL    "https://raw.githubusercontent.com/yourzero/unraid-plugin-docker-multiple-networks/main">
   <!ENTITY pluginURL "&gitURL;/docker-networks.plg">
-  <!ENTITY md5       "cd3fa300420b9433524a5c4a4f0319e7">
+  <!ENTITY md5       "e75ccdeb7aa8e722572d3efed8969cc5">
   <!ENTITY plugin    "/boot/config/plugins/&name;">
   <!ENTITY emhttp    "/usr/local/emhttp/plugins/&name;">
 ]>
