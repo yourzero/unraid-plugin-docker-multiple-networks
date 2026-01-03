@@ -23,9 +23,9 @@
 <URL>&gitURL;/archive/&name;-&version;.txz</URL>
 </FILE>
 
+<!-- Post-installation script -->
 <FILE Run="/bin/bash">
 <INLINE>
-<![CDATA[
 #!/bin/bash
 PLUGIN_DIR=/usr/local/emhttp/plugins/&name;
 CONFIG_DIR=/boot/config/plugins/&name;
@@ -72,9 +72,9 @@ echo Done
 </INLINE>
 </FILE>
 
+<!-- Removal script -->
 <FILE Run="/bin/bash" Method="remove">
 <INLINE>
-<![CDATA[
 #!/bin/bash
 PLUGIN_DIR=/usr/local/emhttp/plugins/&name;
 LOG_DIR=/var/log/&name;
