@@ -38,9 +38,9 @@ Features:
 -->
 
 <!-- Plugin icon -->
-<FILE Name="&plugin;/&name;.png">
+<!-- <FILE Name="&plugin;/&name;.png">
 <URL>&gitURL;/images/&name;.png</URL>
-</FILE>
+</FILE> -->
 
 <!-- Download plugin archive -->
 <FILE Name="&plugin;/&name;-&version;.txz">
