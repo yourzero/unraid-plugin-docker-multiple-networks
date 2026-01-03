@@ -18,12 +18,65 @@ Automatically connect Docker containers to multiple networks when they start. Th
 2. Search for "Docker Multi-Network Manager"
 3. Click **Install**
 
-### Manual Installation
-1. Download the `.plg` file from the releases page
-2. Copy to `/boot/config/plugins/` on your Unraid flash drive
-3. Navigate to **Plugins** > **Install Plugin**
-4. Enter the path to the `.plg` file or paste the URL
-5. Click **Install**
+### Install from GitHub
+
+1. In Unraid, navigate to **Plugins** > **Install Plugin**
+2. Paste the raw URL to the `.plg` file:
+   ```
+   https://raw.githubusercontent.com/YOUR_USERNAME/unraid-docker-networks/main/docker-networks.plg
+   ```
+3. Click **Install**
+
+**Note**: Before installing from GitHub, you must:
+1. Update the `gitURL` entity in `docker-networks.plg` to point to your repository
+2. Build and upload the `.txz` archive to your repository (see [Building the Plugin](#building-the-plugin))
+
+### Install from Local File
+
+1. **Build the plugin** (on any Linux machine):
+   ```bash
+   ./build.sh 2024.01.15
+   ```
+   This creates `archive/docker-networks-2024.01.15.txz`
+
+2. **Copy files to your Unraid flash drive**:
+   ```bash
+   # Copy the plugin archive
+   cp archive/docker-networks-*.txz /boot/config/plugins/docker-networks/
+
+   # Copy the plg file
+   cp docker-networks.plg /boot/config/plugins/docker-networks.plg
+   ```
+
+3. **Edit the `.plg` file** to use local paths instead of URLs:
+
+   Change the FILE entries from URL-based to local:
+   ```xml
+   <!-- Change this: -->
+   <FILE Name="&plugin;/&name;-&version;.txz">
+   <URL>&gitURL;/archive/&name;-&version;.txz</URL>
+   </FILE>
+
+   <!-- To this (remove URL, file is already in place): -->
+   <FILE Name="&plugin;/&name;-&version;.txz">
+   <LOCAL>/boot/config/plugins/docker-networks/docker-networks-2024.01.15.txz</LOCAL>
+   </FILE>
+   ```
+
+4. **Install the plugin**:
+   - Navigate to **Plugins** > **Install Plugin**
+   - Enter the local path: `/boot/config/plugins/docker-networks.plg`
+   - Click **Install**
+
+### Install via Command Line (SSH)
+
+```bash
+# From GitHub
+plugin install https://raw.githubusercontent.com/YOUR_USERNAME/unraid-docker-networks/main/docker-networks.plg
+
+# From local file
+plugin install /boot/config/plugins/docker-networks.plg
+```
 
 ## Usage
 
@@ -188,13 +241,60 @@ Configuration is stored at: `/boot/config/plugins/docker-networks/networks.json`
 
 ### Building the Plugin
 
+Use the included build script:
+
+```bash
+# Build with automatic date-based version
+./build.sh
+
+# Build with specific version
+./build.sh 2024.01.15
+```
+
+This will:
+1. Create `archive/docker-networks-VERSION.txz` containing the plugin files
+2. Generate the MD5 hash
+3. Create an updated `archive/docker-networks.plg` with the correct version and hash
+
+**Manual build** (if needed):
+
 ```bash
 # Create the txz archive
 cd src
-tar -cJf ../archive/docker-networks-VERSION.txz usr/
+tar -cJf ../archive/docker-networks-2024.01.15.txz usr/
+cd ..
 
 # Generate MD5 hash for plg file
-md5sum archive/docker-networks-VERSION.txz
+md5sum archive/docker-networks-2024.01.15.txz
+```
+
+### Publishing to GitHub
+
+1. **Update `docker-networks.plg`** with your GitHub details:
+   ```xml
+   <!ENTITY gitURL "https://raw.githubusercontent.com/YOUR_USERNAME/unraid-docker-networks/main">
+   ```
+
+2. **Build the plugin**:
+   ```bash
+   ./build.sh 2024.01.15
+   ```
+
+3. **Commit and push**:
+   ```bash
+   git add archive/docker-networks-*.txz docker-networks.plg
+   git commit -m "Release version 2024.01.15"
+   git push
+   ```
+
+4. **Create a GitHub Release** (optional but recommended):
+   - Go to your repository's Releases page
+   - Create a new release with the version tag
+   - Attach the `.txz` file
+
+Users can then install via:
+```
+https://raw.githubusercontent.com/YOUR_USERNAME/unraid-docker-networks/main/docker-networks.plg
 ```
 
 ### Directory Structure

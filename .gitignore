@@ -1,6 +1,8 @@
 # Build artifacts
 /build/
-/archive/*.txz
+
+# Note: archive/*.txz files ARE committed for GitHub-based installation
+# Only ignore the generated .plg in archive (use root docker-networks.plg instead)
 /archive/*.plg
 
 # IDE files
