@@ -11,7 +11,7 @@
   <!ENTITY emhttp    "/usr/local/emhttp/plugins/&name;">
 ]>
 
-<PLUGIN name="&name;" author="&author;" version="&version;" launch="&launch;" pluginURL="&pluginURL;" min="6.12.0" support="https://forums.unraid.net/topic/XXXXX-docker-multi-network-manager/">
+<PLUGIN name="&name;" author="&author;" version="&version;" launch="&launch;" pluginURL="&pluginURL;" min="6.12.0">
 
 <CHANGES>
 ###2024.01.15
@@ -22,6 +22,10 @@
 - Logging and retry logic
 </CHANGES>
 
+<<<<<<< HEAD
+=======
+<!-- Download plugin archive -->
+>>>>>>> claude/unraid-docker-multi-network-nNn4K
 <FILE Name="&plugin;/&name;-&version;.txz">
 <URL>&gitURL;/archive/&name;-&version;.txz</URL>
 </FILE>
@@ -54,6 +58,7 @@ chmod +x "${PLUGIN_DIR}/scripts/"*.sh 2>/dev/null
 
 # Create default configuration if it doesn't exist
 if [ ! -f "${CONFIG_DIR}/networks.json" ]; then
+<<<<<<< HEAD
     cat > "${CONFIG_DIR}/networks.json" <<EOF
 {
   "version": "1.0",
@@ -65,10 +70,14 @@ if [ ! -f "${CONFIG_DIR}/networks.json" ]; then
   }
 }
 EOF
+=======
+    echo '{"version":"1.0","containers":{},"settings":{"log_level":"info","retry_attempts":3,"retry_delay_seconds":2}}' > "${CONFIG_DIR}/networks.json"
+>>>>>>> claude/unraid-docker-multi-network-nNn4K
     chmod 600 "${CONFIG_DIR}/networks.json"
     echo "Default configuration created"
 fi
 
+<<<<<<< HEAD
 # Create startup script hook
 STARTUP_SCRIPT="/usr/local/emhttp/plugins/${PLUGIN_NAME}/event/starting_svcs"
 mkdir -p "$(dirname "${STARTUP_SCRIPT}")"
@@ -88,6 +97,21 @@ chmod +x "${SHUTDOWN_SCRIPT}"
 
 # Start daemon if Docker is already running
 if docker info &>/dev/null; then
+=======
+# Create startup script hook for array start
+mkdir -p "${PLUGIN_DIR}/event"
+echo '#!/bin/bash' > "${PLUGIN_DIR}/event/starting_svcs"
+echo '/usr/local/emhttp/plugins/docker-networks/scripts/start.sh' >> "${PLUGIN_DIR}/event/starting_svcs"
+chmod +x "${PLUGIN_DIR}/event/starting_svcs"
+
+# Create shutdown script hook for array stop
+echo '#!/bin/bash' > "${PLUGIN_DIR}/event/stopping_svcs"
+echo '/usr/local/emhttp/plugins/docker-networks/scripts/stop.sh' >> "${PLUGIN_DIR}/event/stopping_svcs"
+chmod +x "${PLUGIN_DIR}/event/stopping_svcs"
+
+# Start daemon if Docker is already running
+if docker info >/dev/null 2>/dev/null; then
+>>>>>>> claude/unraid-docker-multi-network-nNn4K
     echo "Docker is running, starting daemon..."
     "${PLUGIN_DIR}/scripts/docker-networks.sh" start
 fi
@@ -95,6 +119,11 @@ fi
 echo ""
 echo "-----------------------------------------------------------"
 echo " Docker Multi-Network Manager installed successfully!"
+<<<<<<< HEAD
+=======
+echo ""
+echo " Access the plugin at: Settings - Docker - Multi-Network Manager"
+>>>>>>> claude/unraid-docker-multi-network-nNn4K
 echo "-----------------------------------------------------------"
 ]]>
 </INLINE>
