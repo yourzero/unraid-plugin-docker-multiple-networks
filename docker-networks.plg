@@ -27,19 +27,22 @@
 <FILE Run="/bin/bash">
 <INLINE>
 #!/bin/bash
-PLUGIN_NAME=docker-networks
-PLUGIN_DIR=/usr/local/emhttp/plugins/docker-networks
-CONFIG_DIR=/boot/config/plugins/docker-networks
-LOG_DIR=/var/log/docker-networks
+PLUGIN_DIR=/usr/local/emhttp/plugins/&name;
+CONFIG_DIR=/boot/config/plugins/&name;
+LOG_DIR=/var/log/&name;
+ARCHIVE=$CONFIG_DIR/&name;-&version;.txz
 
 echo Installing Docker Multi-Network Manager...
 
 mkdir -p $PLUGIN_DIR
 mkdir -p $LOG_DIR
 
-if [ -f $CONFIG_DIR/docker-networks-&version;.txz ]; then
-    tar -xf $CONFIG_DIR/docker-networks-&version;.txz -C /usr/local/emhttp/plugins/
+echo Looking for archive: $ARCHIVE
+if [ -f $ARCHIVE ]; then
+    tar -xf $ARCHIVE -C /usr/local/emhttp/plugins/
     echo Plugin files extracted
+else
+    echo Warning: Plugin archive not found at $ARCHIVE
 fi
 
 chmod +x $PLUGIN_DIR/scripts/*.sh 2>/dev/null
@@ -58,6 +61,13 @@ echo "#!/bin/bash" > $PLUGIN_DIR/event/stopping_svcs
 echo "$PLUGIN_DIR/scripts/stop.sh" >> $PLUGIN_DIR/event/stopping_svcs
 chmod +x $PLUGIN_DIR/event/stopping_svcs
 
+if [ -f $PLUGIN_DIR/scripts/docker-networks.sh ]; then
+    if docker info >/dev/null 2>/dev/null; then
+        echo Starting daemon...
+        $PLUGIN_DIR/scripts/docker-networks.sh start
+    fi
+fi
+
 echo Done
 </INLINE>
 </FILE>
@@ -66,15 +76,15 @@ echo Done
 <FILE Run="/bin/bash" Method="remove">
 <INLINE>
 #!/bin/bash
-PLUGIN_DIR=/usr/local/emhttp/plugins/docker-networks
-LOG_DIR=/var/log/docker-networks
-CONFIG_DIR=/boot/config/plugins/docker-networks
+PLUGIN_DIR=/usr/local/emhttp/plugins/&name;
+LOG_DIR=/var/log/&name;
+CONFIG_DIR=/boot/config/plugins/&name;
 
-$PLUGIN_DIR/scripts/docker-networks.sh stop 2>/dev/null
+$PLUGIN_DIR/scripts/&name;.sh stop 2>/dev/null
 rm -rf $PLUGIN_DIR
 rm -rf $LOG_DIR
-rm -f $CONFIG_DIR/docker-networks-*.txz
-rm -f /var/run/docker-networks.pid
+rm -f $CONFIG_DIR/&name;-*.txz
+rm -f /var/run/&name;.pid
 
 echo Docker Multi-Network Manager removed
 </INLINE>
