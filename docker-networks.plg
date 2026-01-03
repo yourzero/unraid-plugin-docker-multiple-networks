@@ -37,11 +37,6 @@ Features:
 - Event-driven (no polling)
 -->
 
-<!-- Plugin icon -->
-<FILE Name="&plugin;/&name;.png">
-<URL>&gitURL;/images/&name;.png</URL>
-</FILE>
-
 <!-- Download plugin archive -->
 <FILE Name="&plugin;/&name;-&version;.txz">
 <URL>&gitURL;/archive/&name;-&version;.txz</URL>
@@ -76,7 +71,7 @@ chmod +x "${PLUGIN_DIR}/scripts/"*.sh 2>/dev/null
 
 # Create default configuration if it doesn't exist
 if [ ! -f "${CONFIG_DIR}/networks.json" ]; then
-    cat > "${CONFIG_DIR}/networks.json" << 'DEFAULTCONFIG'
+    cat > "${CONFIG_DIR}/networks.json" &lt;&lt;EOF
 {
   "version": "1.0",
   "containers": {},
@@ -86,7 +81,7 @@ if [ ! -f "${CONFIG_DIR}/networks.json" ]; then
     "retry_delay_seconds": 2
   }
 }
-DEFAULTCONFIG
+EOF
     chmod 600 "${CONFIG_DIR}/networks.json"
     echo "Default configuration created"
 fi
@@ -94,20 +89,20 @@ fi
 # Create startup script hook for array start
 STARTUP_SCRIPT="/usr/local/emhttp/plugins/${PLUGIN_NAME}/event/starting_svcs"
 mkdir -p "$(dirname "${STARTUP_SCRIPT}")"
-cat > "${STARTUP_SCRIPT}" << 'STARTUPEOF'
+cat > "${STARTUP_SCRIPT}" &lt;&lt;EOF
 #!/bin/bash
 # Start Docker Networks daemon when array starts
-/usr/local/emhttp/plugins/docker-networks/scripts/start.sh &
-STARTUPEOF
+/usr/local/emhttp/plugins/docker-networks/scripts/start.sh &amp;
+EOF
 chmod +x "${STARTUP_SCRIPT}"
 
 # Create shutdown script hook for array stop
 SHUTDOWN_SCRIPT="/usr/local/emhttp/plugins/${PLUGIN_NAME}/event/stopping_svcs"
-cat > "${SHUTDOWN_SCRIPT}" << 'SHUTDOWNEOF'
+cat > "${SHUTDOWN_SCRIPT}" &lt;&lt;EOF
 #!/bin/bash
 # Stop Docker Networks daemon when array stops
 /usr/local/emhttp/plugins/docker-networks/scripts/stop.sh
-SHUTDOWNEOF
+EOF
 chmod +x "${SHUTDOWN_SCRIPT}"
 
 # Start daemon if Docker is already running
