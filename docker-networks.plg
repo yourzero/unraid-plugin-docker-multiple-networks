@@ -6,7 +6,7 @@
   <!ENTITY launch    "Docker/DockerNetworks">
   <!ENTITY gitURL    "https://raw.githubusercontent.com/yourzero/unraid-plugin-docker-multiple-networks/main">
   <!ENTITY pluginURL "&gitURL;/docker-networks.plg">
-  <!ENTITY md5       "e75ccdeb7aa8e722572d3efed8969cc5">
+  <!ENTITY md5       "51ee3ca561d7734933650e8fa9e52093">
   <!ENTITY plugin    "/boot/config/plugins/&name;">
   <!ENTITY emhttp    "/usr/local/emhttp/plugins/&name;">
 ]>
@@ -22,31 +22,14 @@
 - Logging and retry logic
 </CHANGES>
 
-<!--
-Docker Multi-Network Manager for Unraid
-
-This plugin automatically connects Docker containers to multiple networks
-when they start. It solves the limitation where Unraid's native Docker UI
-only allows assigning a single network per container.
-
-Features:
-- Persistent configuration (survives reboots)
-- Automatic network connection on container start
-- Web UI for easy management
-- JSON configuration for backup/migration
-- Event-driven (no polling)
--->
-
-<!-- Download plugin archive -->
 <FILE Name="&plugin;/&name;-&version;.txz">
 <URL>&gitURL;/archive/&name;-&version;.txz</URL>
 </FILE>
 
-<!-- Post-installation script -->
 <FILE Run="/bin/bash">
 <INLINE>
+<![CDATA[
 #!/bin/bash
-
 PLUGIN_NAME="docker-networks"
 PLUGIN_DIR="/usr/local/emhttp/plugins/${PLUGIN_NAME}"
 CONFIG_DIR="/boot/config/plugins/${PLUGIN_NAME}"
@@ -71,7 +54,7 @@ chmod +x "${PLUGIN_DIR}/scripts/"*.sh 2>/dev/null
 
 # Create default configuration if it doesn't exist
 if [ ! -f "${CONFIG_DIR}/networks.json" ]; then
-    cat > "${CONFIG_DIR}/networks.json" &lt;&lt;EOF
+    cat > "${CONFIG_DIR}/networks.json" <<EOF
 {
   "version": "1.0",
   "containers": {},
@@ -86,27 +69,25 @@ EOF
     echo "Default configuration created"
 fi
 
-# Create startup script hook for array start
+# Create startup script hook
 STARTUP_SCRIPT="/usr/local/emhttp/plugins/${PLUGIN_NAME}/event/starting_svcs"
 mkdir -p "$(dirname "${STARTUP_SCRIPT}")"
-cat > "${STARTUP_SCRIPT}" &lt;&lt;EOF
+cat > "${STARTUP_SCRIPT}" <<EOF
 #!/bin/bash
-# Start Docker Networks daemon when array starts
-/usr/local/emhttp/plugins/docker-networks/scripts/start.sh &amp;
+/usr/local/emhttp/plugins/docker-networks/scripts/start.sh &
 EOF
 chmod +x "${STARTUP_SCRIPT}"
 
-# Create shutdown script hook for array stop
+# Create shutdown script hook
 SHUTDOWN_SCRIPT="/usr/local/emhttp/plugins/${PLUGIN_NAME}/event/stopping_svcs"
-cat > "${SHUTDOWN_SCRIPT}" &lt;&lt;EOF
+cat > "${SHUTDOWN_SCRIPT}" <<EOF
 #!/bin/bash
-# Stop Docker Networks daemon when array stops
 /usr/local/emhttp/plugins/docker-networks/scripts/stop.sh
 EOF
 chmod +x "${SHUTDOWN_SCRIPT}"
 
 # Start daemon if Docker is already running
-if docker info &amp;>/dev/null; then
+if docker info &>/dev/null; then
     echo "Docker is running, starting daemon..."
     "${PLUGIN_DIR}/scripts/docker-networks.sh" start
 fi
@@ -114,20 +95,15 @@ fi
 echo ""
 echo "-----------------------------------------------------------"
 echo " Docker Multi-Network Manager installed successfully!"
-echo ""
-echo " Access the plugin at: Settings -> Docker -> Multi-Network Manager"
-echo " Or navigate to: /Docker/DockerNetworks"
 echo "-----------------------------------------------------------"
-echo ""
-
+]]>
 </INLINE>
 </FILE>
 
-<!-- Removal script -->
 <FILE Run="/bin/bash" Method="remove">
 <INLINE>
+<![CDATA[
 #!/bin/bash
-
 PLUGIN_NAME="docker-networks"
 PLUGIN_DIR="/usr/local/emhttp/plugins/${PLUGIN_NAME}"
 LOG_DIR="/var/log/${PLUGIN_NAME}"
@@ -136,30 +112,20 @@ CONFIG_DIR="/boot/config/plugins/${PLUGIN_NAME}"
 echo "Removing Docker Multi-Network Manager..."
 
 # Stop daemon if running
-"${PLUGIN_DIR}/scripts/docker-networks.sh" stop 2>/dev/null
+if [ -f "${PLUGIN_DIR}/scripts/docker-networks.sh" ]; then
+    "${PLUGIN_DIR}/scripts/docker-networks.sh" stop 2>/dev/null
+fi
 
-# Remove plugin files (keep config on flash for persistence)
+# Remove plugin files
 rm -rf "${PLUGIN_DIR}"
 rm -rf "${LOG_DIR}"
-
-# Clean up downloaded archives (keep config files)
 rm -f "${CONFIG_DIR}/${PLUGIN_NAME}"-*.txz
-rm -f "${CONFIG_DIR}/${PLUGIN_NAME}.png"
-
-# Remove PID file
 rm -f /var/run/${PLUGIN_NAME}.pid
 
-echo ""
 echo "-----------------------------------------------------------"
 echo " Docker Multi-Network Manager removed."
-echo ""
-echo " Configuration files preserved at:"
-echo " ${CONFIG_DIR}/networks.json"
-echo ""
-echo " To completely remove, delete the above directory."
 echo "-----------------------------------------------------------"
-echo ""
-
+]]>
 </INLINE>
 </FILE>
 
